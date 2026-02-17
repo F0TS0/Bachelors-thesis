@@ -1,8 +1,8 @@
-import ChatUI from "../components/ChatUI";
+import ChatUI from "@/components/ChatUI";
 
 export default function Home() {
   return (
-    <main style={{ padding: 16, display: "flex", justifyContent: "center" }}>
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4 dark:bg-slate-950">
       <ChatUI />
     </main>
   );

@@ -34,37 +34,58 @@ if (credsPath && !fs.existsSync(credsPath)) {
 
 const location = process.env.VERTEX_LOCATION || "us-central1";
 const modelName = process.env.VERTEX_MODEL || "gemini-1.0-pro";
+const timeoutMs = Number(process.env.VERTEX_TIMEOUT_MS) || 30_000;
+const maxRetries = Number(process.env.VERTEX_MAX_RETRIES) || 2;
 
 // I create a single Vertex AI client instance
 const vertexAI = new VertexAI({ project: projectId, location });
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("Vertex AI request timeout")), ms)
+    ),
+  ]);
+}
 
 // This function is the only public entry point for AI generation.
 export async function generateVertexAIResponse(
   prompt: string
 ): Promise<string> {
-  // I fetch the generative model instance here
   const model = vertexAI.getGenerativeModel({ model: modelName });
-  // I send the prompt to Vertex AI and wait for the response.
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }],
-      },
-    ],
-    generationConfig: {
-      // Temperature controls creativity vs determinism.
-      temperature: 0.7,
-      // Token limit prevents overly long or runaway responses.
-      maxOutputTokens: 300,
-    },
-  });
+  let lastErr: unknown;
 
-  const text = result.response.candidates?.[0]?.content?.parts
-    ?.map((p: any) => p?.text)
-    .filter(Boolean)
-    .join("")
-    ?.trim();
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await withTimeout(
+        model.generateContent({
+          contents: [
+            { role: "user", parts: [{ text: prompt }] },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 300,
+          },
+        }),
+        timeoutMs
+      );
 
-  return text || "Sorry, I could not generate a response.";
+      const text = result.response.candidates?.[0]?.content?.parts
+        ?.map((p: { text?: string }) => p?.text)
+        .filter(Boolean)
+        .join("")
+        ?.trim();
+
+      return text || "Sorry, I could not generate a response.";
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxRetries) {
+        console.warn("[vertex] retry", { attempt: attempt + 1, maxRetries });
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+  }
+
+  throw lastErr;
 }

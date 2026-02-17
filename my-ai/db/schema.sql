@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS faq (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
-    category TEXT,
+    category TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

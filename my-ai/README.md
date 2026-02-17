@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI FAQ Chat
 
-## Getting Started
+Next.js monorepo: FAQ-first chat with Vertex AI fallback. SQLite stores FAQs; unmatched questions go to Google Vertex AI (Gemini).
 
-First, run the development server:
+## How to Run
 
 ```bash
+# Install dependencies
+npm install
+
+# Create database (first time only)
+sqlite3 db/faq.db < db/schema.sql
+
+# Development
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Open http://localhost:3000
+
+# Production build
+npm run build
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Env Vars
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local` (or `.env`):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_CLOUD_PROJECT` | Yes* | GCP project ID for Vertex AI |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Yes* | Path to service account JSON key |
+| `VERTEX_LOCATION` | No | Default: `us-central1` |
+| `VERTEX_MODEL` | No | Default: `gemini-1.0-pro` |
+| `VERTEX_FALLBACK_ENABLED` | No | Set to `false` to disable AI fallback |
+| `VERTEX_TIMEOUT_MS` | No | Request timeout (default: 30000) |
+| `VERTEX_MAX_RETRIES` | No | Retries on failure (default: 2) |
+| `ADMIN_PASSWORD` | Yes** | Password for `/admin` FAQ CRUD |
 
-## Learn More
+*Required for Vertex AI fallback. If `VERTEX_FALLBACK_ENABLED=false`, you can omit these.
+**Required for admin access.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/           # Next.js App Router pages
+components/    # React components (chat, admin)
+hooks/         # useChat
+lib/           # db, googleAI, config, errors
+pages/api/     # API routes (chat, admin/faq)
+services/      # chatService (API client)
+types/         # Shared TypeScript types
+db/            # SQLite schema
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Admin
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/admin` — FAQ CRUD (list, search, create, edit, delete)
+- Auth: `x-admin-password` header must match `ADMIN_PASSWORD`

@@ -1,133 +1,99 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChatHeader } from "./chat/ChatHeader";
+import { ChatMessage } from "./chat/ChatMessage";
+import { ChatInput } from "./chat/ChatInput";
+import { LoadingIndicator } from "./chat/LoadingIndicator";
+import { ErrorBanner } from "./chat/ErrorBanner";
+import { ScrollToBottom } from "./chat/ScrollToBottom";
+import { useChat } from "@/hooks/useChat";
 
-//I keep roles as a union so I can extend it later (e.g. "system", "moderator")
- 
-type Role = "user" | "bot";
+const THEME_KEY = "chat-theme";
 
-type Msg = { role: Role; content: string };
-
-//This matches what my backend returns from POST /api/chat. If I change the API response, I update this type first.
- 
-type ChatResponse = { answer?: string };
-
-const START: Msg[] = [{ role: "bot", content: "Hey! Ask me something 👇" }];
+function getStoredTheme(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === "dark" || stored === "light") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
 export default function ChatUI() {
-  // Chat History
-  const [messages, setMessages] = useState<Msg[]>(START);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // I scroll to this element when new messages arrive.
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
-  // If I submit again while a request is running, I cancel the old one to avoid race conditions.
-  const abortRef = useRef<AbortController | null>(null);
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    clearChat,
+    retry,
+    dismissError,
+  } = useChat();
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    setTheme(getStoredTheme());
+  }, []);
 
-  function append(role: Role, content: string) {
-    setMessages((prev) => [...prev, { role, content }]);
-  }
-
-  async function sendMessage() {
-    const text = input.trim();
-    if (!text || loading) return;
-
-    // Cancel any previous call
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setInput("");
-    setLoading(true);
-    append("user", text);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-        signal: controller.signal,
-      });
-
-      // I’ll handle 401/403 here.
-      if (!res.ok) {
-        const extra = await res.text().catch(() => "");
-        throw new Error(
-          `Request failed: ${res.status} ${res.statusText}${extra ? ` — ${extra}` : ""}`
-        );
-      }
-
-      const data = (await res.json()) as ChatResponse;
-      const answer =
-        typeof data.answer === "string" && data.answer.trim()
-          ? data.answer
-          : "No answer returned.";
-
-      append("bot", answer);
-    } catch (err: any) {
-      // AbortError is expected when I cancel requests.
-      if (err?.name === "AbortError") return;
-
-      append("bot", "API call failed. Check server logs.");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      localStorage.setItem(THEME_KEY, theme);
     }
-  }
+  }, [theme]);
 
-  function clearChat() {
-    // If I want to keep conversation context later, I can remove this button and store messages instead.
-    setMessages(START);
-  }
+  useEffect(() => {
+    bodyRef.current?.scrollTo({
+      top: bodyRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages, isLoading]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
 
   return (
-    <div className="chatShell">
-      <div className="chatHeader">
-        <div className="chatTitle">AI FAQ Chat</div>
-        <div className="chatSub">SQLite FAQ → Vertex AI (RAG)</div>
+    <div className="flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+      <ChatHeader
+        onClear={clearChat}
+        clearDisabled={isLoading}
+        theme={theme}
+        onThemeToggle={toggleTheme}
+      />
 
-        {}
-        <button className="chatBtn" onClick={clearChat} disabled={loading} style={{ marginLeft: "auto" }}>
-          Clear
-        </button>
+      <div ref={bodyRef} className="relative flex-1 overflow-y-auto p-4">
+        <div ref={contentRef} className="pb-2">
+          {error && (
+            <ErrorBanner
+              message={error}
+              onRetry={retry}
+              onDismiss={dismissError}
+            />
+          )}
+          {messages.map((m) => (
+            <ChatMessage key={m.id} message={m} />
+          ))}
+          {isLoading && <LoadingIndicator />}
+        </div>
+        <div aria-hidden className="h-px" />
       </div>
 
-      <div className="chatBody">
-        {messages.map((m, idx) => (
-          <div key={idx} className={`msgRow ${m.role === "user" ? "right" : "left"}`}>
-            <div className={`msgBubble ${m.role === "user" ? "user" : "bot"}`}>{m.content}</div>
-          </div>
-        ))}
+      <ScrollToBottom
+        containerRef={bodyRef}
+        contentRef={contentRef}
+        threshold={80}
+      />
 
-        {loading && (
-          <div className="msgRow left">
-            <div className="msgBubble bot">Typing…</div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="chatInputBar">
-        <input
-          className="chatInput"
-          value={input}
-          placeholder='Type a question (e.g., "What is your name?")'
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
-          disabled={loading}
-        />
-        <button className="chatBtn" onClick={sendMessage} disabled={loading || input.trim().length === 0}>
-          Send
-        </button>
-      </div>
+      <ChatInput
+        onSend={sendMessage}
+        disabled={isLoading}
+        placeholder='Type a question (e.g., "What is your name?")'
+      />
     </div>
   );
 }
