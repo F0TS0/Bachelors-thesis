@@ -1,5 +1,6 @@
 "use client";
 
+/** "New messages" button shown when user has scrolled up; clicks scroll to bottom */
 import { useEffect, useState } from "react";
 
 type ScrollToBottomProps = {

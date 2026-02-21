@@ -1,5 +1,6 @@
 "use client";
 
+/** Animated dots shown while waiting for AI response */
 export function LoadingIndicator() {
   return (
     <div className="flex justify-start mb-3">

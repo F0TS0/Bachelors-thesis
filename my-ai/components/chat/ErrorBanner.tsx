@@ -1,5 +1,6 @@
 "use client";
 
+/** Error message with optional Retry and Dismiss actions */
 type ErrorBannerProps = {
   message: string;
   onRetry?: () => void;

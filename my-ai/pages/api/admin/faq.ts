@@ -1,3 +1,10 @@
+/**
+ * Admin FAQ API - /api/admin/faq
+ *
+ * CRUD for FAQ entries. Requires x-admin-password header matching ADMIN_PASSWORD.
+ * Supports GET (list/search, or single by id), POST (create), PUT (update), DELETE.
+ */
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
   createFaq,
@@ -9,6 +16,7 @@ import {
 import { config } from "../../../lib/config";
 import type { AdminApiResponse } from "@/types/api";
 
+/** Check that request has valid admin password header */
 function authed(req: NextApiRequest): boolean {
   const expected = config.admin.password;
   const provided = req.headers["x-admin-password"];

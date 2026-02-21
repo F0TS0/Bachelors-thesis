@@ -1,3 +1,4 @@
+/** Root layout - fonts, metadata, global styles */
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AI FAQ Chat",
-  description: "FAQ-first chat with Vertex AI fallback",
+  description: "FAQ-first chat with Groq fallback",
 };
 
 export default function RootLayout({

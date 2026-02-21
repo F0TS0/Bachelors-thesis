@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * ChatUI - main chat interface
+ *
+ * Header (clear, theme), message list, loading state, error banner,
+ * scroll-to-bottom, and input. Uses useChat for state.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { ChatHeader } from "./chat/ChatHeader";
 import { ChatMessage } from "./chat/ChatMessage";
@@ -11,6 +18,7 @@ import { useChat } from "@/hooks/useChat";
 
 const THEME_KEY = "chat-theme";
 
+/** Read theme from localStorage or system preference */
 function getStoredTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
   const stored = localStorage.getItem(THEME_KEY);

@@ -1,5 +1,6 @@
 "use client";
 
+/** Text input + Send button; auto-expanding textarea, Enter to send, Shift+Enter for newline */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ChatInputProps = {
@@ -19,6 +20,7 @@ export function ChatInput({
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  /** Auto-resize textarea as user types */
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;

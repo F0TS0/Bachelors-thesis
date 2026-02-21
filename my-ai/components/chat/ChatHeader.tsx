@@ -1,5 +1,6 @@
 "use client";
 
+/** Chat header: title, subtitle, theme toggle, clear button */
 type ChatHeaderProps = {
   onClear: () => void;
   clearDisabled?: boolean;
@@ -20,7 +21,7 @@ export function ChatHeader({
           AI FAQ Chat
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          SQLite FAQ → Vertex AI (RAG)
+          SQLite FAQ → Groq
         </p>
       </div>
       <div className="flex items-center gap-2">

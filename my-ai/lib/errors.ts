@@ -8,6 +8,7 @@ export type ApiError = {
   statusCode: number;
 };
 
+/** User-facing messages for each error code */
 const USER_FRIENDLY: Record<string, string> = {
   UNAUTHORIZED: "Please log in again.",
   BAD_REQUEST: "Invalid request. Please check your input.",
@@ -18,10 +19,12 @@ const USER_FRIENDLY: Record<string, string> = {
   UNKNOWN: "Something went wrong. Please try again.",
 };
 
+/** Get user-friendly message for an error code */
 export function toUserMessage(code: string): string {
   return USER_FRIENDLY[code] ?? USER_FRIENDLY.UNKNOWN;
 }
 
+/** Map raw errors (e.g. fetch/network) to structured ApiError */
 export function mapError(err: unknown): ApiError {
   const msg = err instanceof Error ? err.message : String(err);
 
@@ -40,7 +43,7 @@ export function mapError(err: unknown): ApiError {
   if (msg.includes("AbortError")) {
     return { code: "CANCELLED", message: "", statusCode: 0 };
   }
-  if (msg.includes("vertex") || msg.includes("Vertex") || msg.includes("GOOGLE")) {
+  if (msg.includes("groq") || msg.includes("Groq") || msg.includes("GROQ")) {
     return { code: "AI_UNAVAILABLE", message: toUserMessage("AI_UNAVAILABLE"), statusCode: 503 };
   }
   if (msg.includes("SQLite") || msg.includes("database") || msg.includes("ECONNREFUSED")) {

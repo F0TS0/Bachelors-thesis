@@ -2,7 +2,3 @@
 .env
 .env.*
 !.env.example
-
-# Google service account keys
-**/JSON/
-my-ai/json/

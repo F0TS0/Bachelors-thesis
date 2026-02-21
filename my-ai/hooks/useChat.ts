@@ -1,9 +1,17 @@
 "use client";
 
+/**
+ * useChat - chat state and actions
+ *
+ * Manages messages, loading, errors. Sends to API with full history for
+ * multi-turn conversation. Supports retry and clear.
+ */
+
 import { useCallback, useRef, useState } from "react";
 import type { Message } from "@/types/chat";
 import { sendChatMessage } from "@/services/chatService";
 
+/** First message shown when chat loads */
 const INITIAL_MESSAGES: Message[] = [
   {
     id: crypto.randomUUID(),
@@ -27,6 +35,7 @@ export function useChat() {
   });
   const abortRef = useRef<AbortController | null>(null);
 
+  /** Add a new message to the list */
   const appendMessage = useCallback((role: Message["role"], content: string) => {
     const msg: Message = {
       id: crypto.randomUUID(),
@@ -37,6 +46,7 @@ export function useChat() {
     setState((prev) => ({ ...prev, messages: [...prev.messages, msg] }));
   }, []);
 
+  /** Send user message; on retry, omit last user msg from history to avoid dup */
   const sendMessage = useCallback(
     async (text: string, retryLastUserMessage?: string) => {
       const trimmed = text.trim();
@@ -52,7 +62,15 @@ export function useChat() {
         appendMessage("user", trimmed);
       }
 
-      const result = await sendChatMessage(trimmed, controller.signal);
+      // Build history: on retry, exclude last user msg since we're resending it
+      const baseHistory = state.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      const history = retryLastUserMessage
+        ? baseHistory.slice(0, -1)
+        : baseHistory;
+      const result = await sendChatMessage(trimmed, history, controller.signal);
 
       setState((prev) => ({ ...prev, isLoading: false }));
 
@@ -61,7 +79,7 @@ export function useChat() {
       } else if (result.error) {
         setState((prev) => ({ ...prev, error: result.error }));
       }
-      // result.error empty = aborted, do nothing
+      // result.error empty = user aborted, no UI change
     },
     [state.isLoading, appendMessage]
   );

@@ -1,3 +1,4 @@
+/** Home page - renders the chat UI */
 import ChatUI from "@/components/ChatUI";
 
 export default function Home() {

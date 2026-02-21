@@ -1,11 +1,13 @@
 "use client";
 
+/** Single message bubble (user or assistant) with timestamp */
 import type { Message } from "@/types/chat";
 
 type ChatMessageProps = {
   message: Message;
 };
 
+/** Format timestamp for display */
 function formatTime(date: Date): string {
   return date.toLocaleTimeString(undefined, {
     hour: "2-digit",

@@ -10,8 +10,15 @@ export type ChatResult =
   | { ok: true; answer: string }
   | { ok: false; error: string };
 
+export type ChatHistoryMessage = { role: "user" | "assistant"; content: string };
+
+/**
+ * Send a chat message with conversation history to /api/chat.
+ * Returns answer or error. Supports AbortSignal for cancellation.
+ */
 export async function sendChatMessage(
   message: string,
+  history: ChatHistoryMessage[],
   signal?: AbortSignal
 ): Promise<ChatResult> {
   const trimmed = message.trim();
@@ -19,11 +26,14 @@ export async function sendChatMessage(
     return { ok: false, error: "Message cannot be empty." };
   }
 
+  // Include full history + new message for multi-turn context
+  const messages = [...history, { role: "user" as const, content: trimmed }];
+
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: trimmed }),
+      body: JSON.stringify({ messages }),
       signal,
     });
 

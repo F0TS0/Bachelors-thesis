@@ -1,10 +1,20 @@
--- FAQ table
+-- SQLite schema for AI FAQ Chat
+-- Run: sqlite3 db/faq.db < db/schema.sql
+
+-- FAQ table: Q&A pairs for direct lookup before AI fallback
 CREATE TABLE IF NOT EXISTS faq (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
     category TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Profile/about-me table (AI context)
+CREATE TABLE IF NOT EXISTS profile (
+    key TEXT PRIMARY KEY,
+    content TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Chat history table (optional, for logging conversations)
